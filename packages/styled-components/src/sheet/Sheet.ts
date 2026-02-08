@@ -4,7 +4,7 @@ import { EMPTY_OBJECT } from '../utils/empties';
 import { setToString } from '../utils/setToString';
 import { makeGroupedTag } from './GroupedTag';
 import { getGroupForId } from './GroupIDAllocator';
-import { outputSheet, rehydrateSheet } from './Rehydration';
+import { getRehydrationContainer, outputSheet, rehydrateSheet } from './Rehydration';
 import { makeTag } from './Tag';
 import { GroupedTag, Sheet, SheetOptions } from './types';
 
@@ -69,11 +69,25 @@ export default class StyleSheet implements Sheet {
   }
 
   reconstructWithOptions(options: SheetConstructorArgs, withNames = true) {
-    return new StyleSheet(
+    const newSheet = new StyleSheet(
       { ...this.options, ...options },
       this.gs,
       (withNames && this.names) || undefined
     );
+
+    // If we're reconstructing with a new target on the client, check if the container changed
+    // This handles the case where StyleSheetManager's target prop changes (e.g., from undefined to shadowRoot)
+    // We only rehydrate if the container (Document or ShadowRoot) actually changes
+    if (!this.server && IS_BROWSER && options.target !== this.options.target) {
+      const oldContainer = getRehydrationContainer(this.options.target);
+      const newContainer = getRehydrationContainer(options.target);
+
+      if (oldContainer !== newContainer) {
+        rehydrateSheet(newSheet);
+      }
+    }
+
+    return newSheet;
   }
 
   allocateGSInstance(id: string) {

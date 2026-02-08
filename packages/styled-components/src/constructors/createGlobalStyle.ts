@@ -79,7 +79,7 @@ export default function createGlobalStyle<Props extends object>(
 
         return () => {
           globalStyle.removeStyles(instance, ssc.styleSheet);
-          removeGlobalStyleTag(styledComponentId);
+          removeGlobalStyleTag(styledComponentId, ssc.styleSheet.options.target);
         };
       }, [instance, props, ssc.styleSheet, theme, ssc.stylis]);
     }
